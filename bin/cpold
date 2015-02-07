@@ -1,0 +1,113 @@
+#! /usr/bin/env python
+
+"""Wrap the cp UNIX utility to provide DEST based on the current UTC date, time
+
+Takes a list of files and directories and copies them, computing the
+destination by appending a comma and the current Zulu time in ISO 8601 format
+to its file name.
+"""
+
+import argparse
+import sys
+
+from datetime import datetime
+from subprocess import call
+
+
+def parse_command_line():
+    """Parse the command line arguments
+
+    Returns a 2-items tuple containing two immutable lists:
+        * the list of sources;
+        * the base ``cp`` command line.
+
+    Only ``cp`` options that are common enough accross systems are supported.
+
+    :rtype: tuple[str], tuple[str]
+    """
+
+    class AddCpOption(argparse.Action):
+        """Append the short option stored in 'const' to ``cp`` options list
+
+        Expects 'const' to contains the letter corresponding to the short
+        option to append to ``cp`` options list.
+
+        Ensures this option requires no argument by forcing the value of
+        'nargs' to ``0``.
+
+        Raises a :class:`ValueError` if 'const' was not provided as part of the
+        keywords when the argument was created.
+        """
+
+        def __init__(self, const, **kwargs):
+            if const is None:
+                raise ValueError('const keyword is required')
+            self.const = const
+            super(AddCpOption, self).__init__(const=const, nargs=0, **kwargs)
+
+        def __call__(self, parser, namespace, values, option_string=None):
+            cp_cmdline = getattr(namespace, 'cp_cmdline', ['cp'])
+            cp_cmdline.append('-{}'.format(self.const))
+            setattr(namespace, 'cp_cmdline', cp_cmdline)
+
+    parser = argparse.ArgumentParser(
+        description='Green powder for CM (http://www.poudreverte.org).',
+        epilog='See `man 1 cp` for complete descriptions of options.')
+    parser.add_argument(
+        '-v', '--verbose', action=AddCpOption, const='v',
+        help='show files as they are copied')
+    parser.add_argument(
+        'sources', nargs='+', metavar='SOURCE',
+        help='source file or directory to copy')
+    parser.add_argument(
+        '-f', '--force', action=AddCpOption, const='f',
+        help=('if an existing destination file cannot be opened, remove it '
+              'and try again'))
+    parser.add_argument(
+        '-p', '--preserve', action=AddCpOption, const='p',
+        help='preserve attributes of each source file in the copy')
+    parser.add_argument(
+        '-R', '-r', '--recursive', action=AddCpOption, const='r',
+        help=('if SOURCE designates a directory, copies the directory and '
+              'the entire subtree connected at that point'))
+
+    args = parser.parse_args()
+    return tuple(args.sources), tuple(args.cp_cmdline)
+
+
+def cpold():
+    """Wrapper to the cp UNIX utility for backup purposes
+
+    Parses the command line and copies files and directories.
+    This function returns 0 on success, and >0 if one or more errors occured.
+
+    :rtype: int
+    """
+
+    # Several sources can be specified so keep track of the number of errors
+    # that occured to compute exit code.
+    error_count = 0
+
+    # Parse the command line to extract the list of sources and the cp utility
+    # base command line (ie. w/o src & dst).
+    sources, cp_cmdline = parse_command_line()
+
+    # Compute Zulu time in ISO 8601 format.
+    suffix = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    for src in sources:
+        # Compute the final cp command line for this source
+        args = cp_cmdline + (src, '{},{}'.format(src, suffix))
+
+        # Spawn cp and check its exit code
+        if call(args, stdout=sys.stdout, stderr=sys.stderr) != 0:
+            error_count += 1
+
+    return 1 if error_count else 0
+
+if __name__ == '__main__':
+    try:
+        sys.exit(cpold())
+    except KeyboardInterrupt:
+        # Gracefully handle ^C.
+        sys.exit('\nInterrupted.')
