@@ -21,7 +21,7 @@ def parse_command_line():
         * the list of sources;
         * the base ``cp`` command line.
 
-    Only ``cp`` options that are common enough accross systems are supported.
+    Only ``cp`` options that are common enough across systems are supported.
 
     :rtype: tuple[str], tuple[str]
     """
@@ -29,8 +29,8 @@ def parse_command_line():
     class AddCpOption(argparse.Action):
         """Append the short option stored in 'const' to ``cp`` options list
 
-        Expects 'const' to contains the letter corresponding to the short
-        option to append to ``cp`` options list.
+        Expects 'const' to contain the letter corresponding to the short option
+        to append to ``cp`` options list.
 
         Ensures this option requires no argument by forcing the value of
         'nargs' to ``0``.
@@ -79,13 +79,13 @@ def cpold():
     """Wrapper to the cp UNIX utility for backup purposes
 
     Parses the command line and copies files and directories.
-    This function returns 0 on success, and >0 if one or more errors occured.
+    This function returns 0 on success, and >0 if one or more errors occurred.
 
     :rtype: int
     """
 
     # Several sources can be specified so keep track of the number of errors
-    # that occured to compute exit code.
+    # that occurred to compute exit code.
     error_count = 0
 
     # Parse the command line to extract the list of sources and the cp utility
