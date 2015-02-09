@@ -67,7 +67,7 @@ def parse_command_line():
         '-p', '--preserve', action=AddCpOption, const='p',
         help='preserve attributes of each source file in the copy')
     parser.add_argument(
-        '-R', '-r', '--recursive', action=AddCpOption, const='r',
+        '-R', '-r', '--recursive', action=AddCpOption, const='R',
         help=('if SOURCE designates a directory, copies the directory and '
               'the entire subtree connected at that point'))
 
