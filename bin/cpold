@@ -12,6 +12,7 @@ import sys
 
 from datetime import datetime
 from subprocess import call
+from textwrap import dedent
 
 
 def parse_command_line():
@@ -25,6 +26,24 @@ def parse_command_line():
 
     :rtype: tuple[str], tuple[str]
     """
+
+    def partition(array, sep):
+        """Split the list at the first occurrence of ``sep``
+
+        Returns a 2-tuple containing the part before the separator and the part
+        after the separator. If the separator is not found, return a 2-tuple
+        containing the list itself, followed by an empty list.
+
+        :param array: the list to split
+        :type array: list
+        :param sep: the split separator
+        :type sep: *
+        :rtype: list, list
+        """
+        if sep not in array:
+            return array, []
+        idx = array.index(sep)
+        return array[:idx], array[idx + 1:]
 
     class AddCpOption(argparse.Action):
         """Append the short option stored in 'const' to ``cp`` options list
@@ -51,14 +70,14 @@ def parse_command_line():
             setattr(namespace, 'cp_args', cp_args)
 
     parser = argparse.ArgumentParser(
-        description='Green powder for CM (http://www.poudreverte.org).',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=dedent('''
+            Use --args to force options to the underlying `cp` command:
+                $ cpold -v SOURCE --args -a -n'''),
         epilog='See `man 1 cp` for complete descriptions of options.')
     parser.add_argument(
         '-v', '--verbose', action=AddCpOption, const='v',
         help='show files as they are copied')
-    parser.add_argument(
-        'sources', nargs='+', metavar='SOURCE',
-        help='source file or directory to copy')
     parser.add_argument(
         '-f', '--force', action=AddCpOption, const='f',
         help=('if an existing destination file cannot be opened, remove it '
@@ -70,9 +89,14 @@ def parse_command_line():
         '-R', '-r', '--recursive', action=AddCpOption, const='R',
         help=('if SOURCE designates a directory, copies the directory and '
               'the entire subtree connected at that point'))
+    parser.add_argument(
+        'sources', nargs='+', metavar='SOURCE',
+        help='source file or directory to copy')
 
-    args = parser.parse_args()
-    cp_args = args.cp_args if hasattr(args, 'cp_args') else []
+    argv, extras = partition(sys.argv[1:], '--args')
+    args = parser.parse_args(argv)
+    cp_args = (args.cp_args if hasattr(args, 'cp_args') else []) + extras
+
     return tuple(args.sources), tuple(cp_args)
 
 
