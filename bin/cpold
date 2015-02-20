@@ -46,9 +46,9 @@ def parse_command_line():
             super(AddCpOption, self).__init__(const=const, nargs=0, **kwargs)
 
         def __call__(self, parser, namespace, values, option_string=None):
-            cp_cmdline = getattr(namespace, 'cp_cmdline', ['cp'])
-            cp_cmdline.append('-{}'.format(self.const))
-            setattr(namespace, 'cp_cmdline', cp_cmdline)
+            cp_args = getattr(namespace, 'cp_args', [])
+            cp_args.append('-{}'.format(self.const))
+            setattr(namespace, 'cp_args', cp_args)
 
     parser = argparse.ArgumentParser(
         description='Green powder for CM (http://www.poudreverte.org).',
@@ -72,7 +72,8 @@ def parse_command_line():
               'the entire subtree connected at that point'))
 
     args = parser.parse_args()
-    return tuple(args.sources), tuple(args.cp_cmdline)
+    cp_args = args.cp_args if hasattr(args, 'cp_args') else []
+    return tuple(args.sources), tuple(cp_args)
 
 
 def cpold():
@@ -90,14 +91,14 @@ def cpold():
 
     # Parse the command line to extract the list of sources and the cp utility
     # base command line (ie. w/o src & dst).
-    sources, cp_cmdline = parse_command_line()
+    sources, cp_args = parse_command_line()
 
     # Compute Zulu time in ISO 8601 format.
     suffix = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
 
     for src in sources:
         # Compute the final cp command line for this source
-        args = cp_cmdline + (src, '{},{}'.format(src, suffix))
+        args = ('cp',) + cp_args + (src, '{},{}'.format(src, suffix))
 
         # Spawn cp and check its exit code
         if call(args, stdout=sys.stdout, stderr=sys.stderr) != 0:
